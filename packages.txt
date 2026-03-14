@@ -1,0 +1,162 @@
+# HyprFlux-Simple: Complete Package List
+# Install with: pacman -S $(grep -v '^#' packages.txt | grep -v '^$')
+# AUR packages require yay to be installed first
+
+# ============================================
+# PACMAN PACKAGES (Community + Core)
+# ============================================
+
+# Desktop Environment & Wayland
+hyprland
+rofi
+waybar
+kitty
+hyprlock
+hypridle
+hyprpolkitagent
+wlogout
+swww
+
+# Network & System
+network-manager-applet
+blueman
+pavucontrol
+brightnessctl
+playerctl
+
+# Clipboard & Screenshots
+wl-clipboard
+cliphist
+grim
+slurp
+swappy
+
+# File Management
+thunar
+thunar-archive-plugin
+file-roller
+gvfs
+gvfs-mtp
+gvfs-gphoto2
+udisks2
+ntfs-3g
+udiskie
+
+# Browsers
+firefox
+chromium
+
+# Multimedia
+imv
+mpv
+gimp
+zathura
+zathura-pdf-mupdf
+
+# Archives
+zip
+unzip
+p7zip
+unrar
+
+# Development & Version Control
+git
+neovim
+vscodium
+tmux
+docker
+docker-compose
+
+# System Monitoring
+btop
+fastfetch
+bottom
+htop
+
+# Utilities
+ripgrep
+fd
+fzf
+lazygit
+git-delta
+lazydocker
+starship
+bat
+eza
+jq
+yq
+httpie
+shellcheck
+curl
+wget
+plocate
+tree
+
+# Fonts (Complete)
+noto-fonts
+noto-fonts-emoji
+noto-fonts-cjk
+ttf-jetbrains-mono
+ttf-jetbrains-mono-nerd
+ttf-liberation
+ttf-dejavu
+
+# Theming & Desktop Integration
+bibata-cursor-theme
+papirus-icon-theme
+qt5ct
+qt6ct
+nwg-look
+adwaita
+kvantum
+kvantum-qt5
+
+# Desktop Portals
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+
+# Virtualization
+virtualbox
+virtualbox-host-modules-arch
+virtualbox-guest-iso
+
+# Build Tools & Compilers
+base-devel
+cmake
+clang
+make
+tree-sitter
+tree-sitter-cli
+
+# Language Runtimes
+nodejs
+npm
+python
+python-pip
+python-virtualenv
+
+# Java Development Kit
+jdk-openjdk
+jre-openjdk
+
+# Package Managers & Tools
+yay
+bun
+mise
+python-poetry
+python-pipx
+ipython
+
+# Office & Productivity
+libreoffice-fresh
+
+# System Optimization
+auto-cpufreq
+
+# ============================================
+# AUR PACKAGES (requires yay)
+# ============================================
+
+sunshine-bin
+brave-bin
+localsend-bin

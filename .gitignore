@@ -1,0 +1,84 @@
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor & IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+.netrwhist
+*.iml
+
+# Backups
+*~
+*.bak
+*.backup
+hyprflux-backup-*/
+hyprflux-changes-backup-*/
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+target/
+dist/
+build/
+
+# Dependencies
+node_modules/
+.npm
+.yarn/
+*.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+.config/hyprflux/install.log
+
+# Large files (user wallpapers)
+wallpapers/*.png
+wallpapers/*.jpg
+wallpapers/*.jpeg
+wallpapers/*.webp
+!wallpapers/*.md
+
+# Local overrides
+local/
+custom/
+user-config/
+
+# Temporary files
+*.tmp
+.tmp/
+temp/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Shell history
+.bash_history
+.zsh_history
+.history
+
+# Git
+.git/
+.gitmodules
+
+# System configs (if modified locally)
+# .config/gtk-3.0/settings.ini
+# .config/gtk-4.0/settings.ini
