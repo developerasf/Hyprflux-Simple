@@ -88,12 +88,12 @@ install_essentials() {
 
 find_repo() {
     info "Determining repository location..."
-    
+
     # If run as curl pipe, we need to clone the repo
     if [[ ! -f "install.sh" ]]; then
         local repo_url="${HYPRFLUX_REPO:-https://github.com/yourusername/hyprflux-simple.git}"
         local repo_dir="${HOME}/.config/hyprflux/repo"
-        
+
         info "Cloning repository to ${repo_dir}..."
         if [[ -d "$repo_dir" ]]; then
             cd "$repo_dir" && git pull --quiet origin main 2>&1 >> "$LOG_FILE"
@@ -103,7 +103,7 @@ find_repo() {
             git clone --quiet "$repo_url" "$repo_dir" 2>&1 >> "$LOG_FILE"
             success "Repository cloned"
         fi
-        
+
         cd "$repo_dir"
         REPO_DIR="$repo_dir"
     else
@@ -118,28 +118,31 @@ find_repo() {
 
 install_packages() {
     info "Installing packages from packages.txt..."
-    
+
     local pacman_packages=()
     local aur_packages=()
-    
+    local in_aur=0
+
     # Parse packages.txt
     while IFS= read -r line; do
+        # Check for AUR section marker FIRST (before skipping comments)
+        if [[ "$line" =~ AUR\ PACKAGES ]]; then
+            in_aur=1
+            continue
+        fi
+
         # Skip comments and empty lines
         [[ "$line" =~ ^#.*$ ]] && continue
         [[ -z "$line" ]] && continue
-        
-        # Check if in AUR section
-        if [[ "$line" =~ ^.*AUR\ PACKAGES ]] || [[ "$in_aur" == "1" ]]; then
-            if [[ "$line" =~ ^.*AUR\ PACKAGES ]]; then
-                in_aur=1
-                continue
-            fi
+
+        # Add to appropriate array based on section
+        if [[ "$in_aur" == "1" ]]; then
             aur_packages+=("$line")
         else
             pacman_packages+=("$line")
         fi
     done < "$REPO_DIR/packages.txt"
-    
+
     # Install pacman packages
     info "Installing pacman packages (${#pacman_packages[@]} packages)..."
     for pkg in "${pacman_packages[@]}"; do
@@ -163,7 +166,7 @@ install_packages() {
         fi
     done
     success "Pacman package installation complete"
-    
+
     # Install AUR packages (if yay is available)
     if command -v yay &>/dev/null; then
         info "Installing AUR packages (${#aur_packages[@]} packages)..."
@@ -171,13 +174,21 @@ install_packages() {
             if yay -Q "$pkg" &>/dev/null 2>&1; then
                 info "$pkg already installed"
             else
-                warn "Installing AUR package: $pkg (may require interaction)"
-                yay -S "$pkg" --noconfirm 2>&1 | tail -2 >> "$LOG_FILE" || warn "Failed to install $pkg"
+                info "Installing AUR package: $pkg..."
+                if yay -S "$pkg" --noconfirm 2>&1 | tail -2 >> "$LOG_FILE"; then
+                    success "✓ $pkg"
+                else
+                    warn "Failed to install $pkg (continuing...)"
+                fi
             fi
         done
         success "AUR package installation complete"
     else
-        warn "yay not found. Skipping AUR packages. Install yay to get: ${aur_packages[@]}"
+        warn "yay not found. Skipping AUR packages."
+        warn "Install yay first, then install AUR packages manually:"
+        for pkg in "${aur_packages[@]}"; do
+            warn "  yay -S $pkg"
+        done
     fi
 }
 
@@ -187,20 +198,22 @@ install_packages() {
 
 backup_configs() {
     info "Backing up existing configurations..."
-    
+
     local backup_dir="${HOME}/hyprflux-backup-$(date +%s)"
     local backed_up=0
-    
+
     for item in .config .zshrc .tmux.conf; do
         if [[ -e "$HOME/$item" ]]; then
             mkdir -p "$backup_dir"
+            info "  → Backing up $item (this may take a moment)..."
             cp -r "$HOME/$item" "$backup_dir/" 2>&1 >> "$LOG_FILE"
             ((backed_up++))
+            success "  ✓ $item backed up"
         fi
     done
-    
+
     if [[ $backed_up -gt 0 ]]; then
-        success "Backed up $backed_up existing items to: $backup_dir"
+        success "Backed up $backed_up items to: $backup_dir"
     else
         info "No existing configs to backup"
     fi
@@ -212,27 +225,47 @@ backup_configs() {
 
 deploy_configs() {
     info "Deploying configurations..."
-    
-    # Copy .config directory
-    cp -r "$REPO_DIR/.config"/* "$HOME/.config/" 2>&1 >> "$LOG_FILE"
-    success "✓ .config deployed"
-    
+
+    # Ensure ~/.config exists
+    mkdir -p "$HOME/.config"
+
+    # Copy .config directory with verbose output
+    info "  → Copying .config directory (this may take a moment)..."
+    if cp -r "$REPO_DIR/.config"/* "$HOME/.config/" 2>&1 >> "$LOG_FILE"; then
+        success "✓ .config deployed"
+    else
+        error "Failed to copy .config directory"
+        return 1
+    fi
+
     # Copy dotfiles
-    cp "$REPO_DIR/.zshrc" "$HOME/.zshrc" 2>&1 >> "$LOG_FILE"
-    cp "$REPO_DIR/.tmux.conf" "$HOME/.tmux.conf" 2>&1 >> "$LOG_FILE"
-    success "✓ .zshrc deployed"
-    success "✓ .tmux.conf deployed"
-    
+    info "  → Copying shell configs..."
+    if cp "$REPO_DIR/.zshrc" "$HOME/.zshrc" 2>&1 >> "$LOG_FILE"; then
+        success "✓ .zshrc deployed"
+    else
+        warn ".zshrc copy had issues"
+    fi
+
+    if cp "$REPO_DIR/.tmux.conf" "$HOME/.tmux.conf" 2>&1 >> "$LOG_FILE"; then
+        success "✓ .tmux.conf deployed"
+    else
+        warn ".tmux.conf copy had issues"
+    fi
+
     # Copy tmuxifier configs if present
     if [[ -d "$REPO_DIR/.tmuxifier" ]]; then
-        cp -r "$REPO_DIR/.tmuxifier" "$HOME/" 2>&1 >> "$LOG_FILE"
-        success "✓ .tmuxifier deployed"
+        info "  → Copying tmuxifier layouts..."
+        if cp -r "$REPO_DIR/.tmuxifier" "$HOME/" 2>&1 >> "$LOG_FILE"; then
+            success "✓ .tmuxifier deployed"
+        else
+            warn ".tmuxifier copy had issues"
+        fi
     fi
-    
+
     # Create essential directories
     mkdir -p "$HOME/.local/share/applications"
     mkdir -p "$HOME/.config/fontconfig/conf.d"
-    
+
     success "Configuration deployment complete"
 }
 
@@ -242,19 +275,19 @@ deploy_configs() {
 
 install_sddm_theme() {
     info "Installing SDDM login theme..."
-    
+
     local theme_src="$REPO_DIR/sddm-theme"
     local theme_dest="/usr/share/sddm/themes/simple-sddm-2"
-    
+
     if [[ ! -d "$theme_src" ]]; then
         warn "SDDM theme not found in repository, skipping"
         return
     fi
-    
+
     sudo mkdir -p "$theme_dest"
     sudo cp -r "$theme_src"/* "$theme_dest/" 2>&1 >> "$LOG_FILE"
     success "✓ SDDM theme installed"
-    
+
     # Update SDDM configuration
     if [[ -f /etc/sddm.conf ]]; then
         info "Updating SDDM configuration..."
@@ -275,16 +308,16 @@ EOF
 
 setup_neovim() {
     info "Setting up NeoVim plugins..."
-    
+
     if ! command -v nvim &>/dev/null; then
         warn "NeoVim not found, skipping plugin setup"
         return
     fi
-    
+
     # Install plugins via Lazy.nvim (if configured)
     nvim --headless "+Lazy! sync" "+Mason" "+qall" 2>&1 | tail -3 >> "$LOG_FILE" || \
         warn "NeoVim plugin sync had issues (check manually)"
-    
+
     success "✓ NeoVim configured"
 }
 
@@ -294,18 +327,18 @@ setup_neovim() {
 
 setup_tmux() {
     info "Setting up Tmux plugin manager..."
-    
+
     local tpm_dir="$HOME/.tmux/plugins/tpm"
-    
+
     if [[ ! -d "$tpm_dir" ]]; then
         mkdir -p "$HOME/.tmux/plugins"
         git clone https://github.com/tmux-plugins/tpm "$tpm_dir" 2>&1 >> "$LOG_FILE"
         success "✓ TPM installed"
     fi
-    
+
     # Install plugins
     "$tpm_dir/bin/install_plugins" 2>&1 >> "$LOG_FILE" || warn "TPM plugin install had issues"
-    
+
     success "✓ Tmux configured"
 }
 
@@ -315,7 +348,7 @@ setup_tmux() {
 
 setup_zsh() {
     info "Setting up Zsh shell..."
-    
+
     # Change default shell to zsh
     if [[ "$SHELL" != "$(which zsh)" ]]; then
         info "Changing default shell to zsh..."
@@ -324,14 +357,14 @@ setup_zsh() {
     else
         info "Zsh already set as default shell"
     fi
-    
+
     # Check for Oh My Zsh
     if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
         warn "Oh My Zsh not installed. Install with: sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\""
     else
         success "✓ Oh My Zsh detected"
     fi
-    
+
     success "✓ Zsh configured"
 }
 
@@ -341,16 +374,16 @@ setup_zsh() {
 
 setup_fonts() {
     info "Configuring fonts..."
-    
+
     local font_conf_dir="$HOME/.config/fontconfig/conf.d"
     mkdir -p "$font_conf_dir"
-    
+
     # Rebuild font cache
     if command -v fc-cache &>/dev/null; then
         fc-cache -fv 2>&1 | tail -2 >> "$LOG_FILE"
         success "✓ Font cache rebuilt"
     fi
-    
+
     success "✓ Fonts configured"
 }
 
@@ -360,23 +393,23 @@ setup_fonts() {
 
 setup_webapps() {
     info "Setting up Chromium web app shortcuts..."
-    
+
     local webapps_conf="$REPO_DIR/config/webapps.conf"
-    
+
     if [[ ! -f "$webapps_conf" ]]; then
         warn "webapps.conf not found, skipping"
         return
     fi
-    
+
     local app_count=0
     while IFS='|' read -r name url icon_type; do
         # Skip comments
         [[ "$name" =~ ^#.*$ ]] && continue
         [[ -z "$name" ]] && continue
-        
+
         # Create .desktop file for Chromium PWA
         local desktop_file="$HOME/.local/share/applications/${name}-webapp.desktop"
-        
+
         cat > "$desktop_file" <<EOF
 [Desktop Entry]
 Version=1.0
@@ -392,7 +425,7 @@ EOF
         ((app_count++))
         success "✓ ${name} web app shortcut created"
     done < "$webapps_conf"
-    
+
     if [[ $app_count -gt 0 ]]; then
         update-desktop-database "$HOME/.local/share/applications" 2>&1 >> "$LOG_FILE"
         success "Desktop database updated"
@@ -405,17 +438,17 @@ EOF
 
 setup_theming() {
     info "Setting up cursor theme and icons..."
-    
+
     # Set cursor theme via gsettings (Hyprland compatible)
     if command -v gsettings &>/dev/null; then
         gsettings set org.gnome.desktop.interface cursor-theme "Bibata-Modern-Classic" 2>&1 >> "$LOG_FILE" || \
             warn "Failed to set cursor theme via gsettings"
         success "✓ Cursor theme set"
     fi
-    
+
     # Ensure icon directories exist
     mkdir -p "$HOME/.icons"
-    
+
     success "✓ Theming configured"
 }
 
@@ -425,10 +458,10 @@ setup_theming() {
 
 final_checks() {
     info "Running final validation checks..."
-    
+
     local checks_passed=0
     local checks_total=0
-    
+
     # Check Hyprland
     ((checks_total++))
     if command -v hyprland &>/dev/null || command -v Hyprland &>/dev/null; then
@@ -437,7 +470,7 @@ final_checks() {
     else
         warn "✗ Hyprland not found"
     fi
-    
+
     # Check essential tools
     for tool in rofi waybar kitty nvim tmux git; do
         ((checks_total++))
@@ -448,7 +481,7 @@ final_checks() {
             warn "✗ $tool not found"
         fi
     done
-    
+
     # Check config directories
     for config in hypr waybar rofi kitty; do
         ((checks_total++))
@@ -459,7 +492,7 @@ final_checks() {
             warn "✗ .$config config missing"
         fi
     done
-    
+
     echo ""
     info "========================================="
     info "Installation Summary"
@@ -491,10 +524,10 @@ main() {
     echo "╚════════════════════════════════════════╝"
     echo -e "${NC}"
     echo ""
-    
+
     info "Starting installation at $(date)"
     echo ""
-    
+
     check_os
     check_sudo
     update_system
@@ -511,10 +544,10 @@ main() {
     setup_webapps
     setup_theming
     final_checks
-    
+
     echo ""
     info "Installation finished at $(date)"
-    
+
     # Prompt for reboot
     if [[ "${HYPRFLUX_SKIP_REBOOT:-0}" != "1" ]]; then
         echo ""

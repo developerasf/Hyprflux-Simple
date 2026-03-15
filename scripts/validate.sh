@@ -21,7 +21,7 @@ log_check() {
     local status=$1
     local message=$2
     ((checks_total++))
-    
+
     if [[ "$status" == "PASS" ]]; then
         echo -e "${GREEN}[✓]${NC} $message"
         ((checks_passed++))

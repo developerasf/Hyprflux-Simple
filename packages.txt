@@ -14,7 +14,6 @@ kitty
 hyprlock
 hypridle
 hyprpolkitagent
-wlogout
 swww
 
 # Network & System
@@ -42,9 +41,10 @@ udisks2
 ntfs-3g
 udiskie
 
-# Browsers
+# Browsers & Development
 firefox
 chromium
+code
 
 # Multimedia
 imv
@@ -62,7 +62,6 @@ unrar
 # Development & Version Control
 git
 neovim
-vscodium
 tmux
 docker
 docker-compose
@@ -102,12 +101,10 @@ ttf-liberation
 ttf-dejavu
 
 # Theming & Desktop Integration
-bibata-cursor-theme
 papirus-icon-theme
 qt5ct
 qt6ct
 nwg-look
-adwaita
 kvantum
 kvantum-qt5
 
@@ -137,7 +134,6 @@ python-virtualenv
 
 # Java Development Kit
 jdk-openjdk
-jre-openjdk
 
 # Package Managers & Tools
 yay
@@ -150,13 +146,13 @@ ipython
 # Office & Productivity
 libreoffice-fresh
 
-# System Optimization
-auto-cpufreq
-
 # ============================================
 # AUR PACKAGES (requires yay)
 # ============================================
 
+wlogout-bin
+bibata-cursor-theme-bin
+auto-cpufreq-git
 sunshine-bin
 brave-bin
 localsend-bin

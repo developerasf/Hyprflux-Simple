@@ -479,11 +479,11 @@ cp -r ~/hyprflux-changes-backup-*/* ~/
 
 We keep this setup simple and stable. Here's what's intentionally excluded:
 
-❌ **Plymouth** - Boot animation (adds complexity, can break on updates)  
-❌ **GRUB theming** - Bootloader customization (rarely visible, adds maintenance burden)  
-❌ **Kernel parameters** - Quiet splash (cosmetic only)  
-❌ **17+ Installation Modules** - Sequential dependency complexity  
-❌ **Upstream Arch-Hyprland Dependency** - Full independence  
+❌ **Plymouth** - Boot animation (adds complexity, can break on updates)
+❌ **GRUB theming** - Bootloader customization (rarely visible, adds maintenance burden)
+❌ **Kernel parameters** - Quiet splash (cosmetic only)
+❌ **17+ Installation Modules** - Sequential dependency complexity
+❌ **Upstream Arch-Hyprland Dependency** - Full independence
 
 **Add these back if desired** - all are modular and don't affect core setup.
 
