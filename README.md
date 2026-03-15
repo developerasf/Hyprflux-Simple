@@ -27,12 +27,12 @@ A **minimal, stable, and production-ready** Hyprland desktop environment dotfile
 ### Option 1: Fresh Arch Installation
 ```bash
 # Run this on fresh Arch Linux (requires sudo)
-curl -O https://raw.githubusercontent.com/yourusername/hyprflux-simple/main/install.sh && bash install.sh
+curl -O https://raw.githubusercontent.com/developerasf/hyprflux-simple/main/install.sh && bash install.sh
 ```
 
 ### Option 2: Local Installation
 ```bash
-git clone https://github.com/yourusername/hyprflux-simple.git
+git clone https://github.com/developerasf/hyprflux-simple.git
 cd hyprflux-simple
 bash install.sh
 ```
