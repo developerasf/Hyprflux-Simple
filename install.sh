@@ -8,6 +8,10 @@
 
 set -euo pipefail
 
+# Always use script's directory as working directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # ================================================================
 # COLORS & LOGGING
 # ================================================================
@@ -167,15 +171,47 @@ install_packages() {
     done
     success "Pacman package installation complete"
 
-    # Install AUR packages (if yay is available)
-    if command -v yay &>/dev/null; then
-        info "Installing AUR packages (${#aur_packages[@]} packages)..."
+    # Setup Chaotic AUR (pre-compiled AUR packages)
+    if [[ ${#aur_packages[@]} -gt 0 ]]; then
+        info "Setting up Chaotic AUR repository..."
+
+        # Import Chaotic AUR keyring
+        if ! sudo pacman -Q chaotic-keyring &>/dev/null 2>&1; then
+            sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com 2>&1 >> "$LOG_FILE" || true
+            sudo pacman-key --lsign-key 3056513887B78AEB 2>&1 >> "$LOG_FILE" || true
+            sudo pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' 2>&1 >> "$LOG_FILE" || true
+            sudo pacman --noconfirm -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' 2>&1 >> "$LOG_FILE" || true
+            info "Chaotic AUR keyring installed"
+        fi
+
+        # Add Chaotic AUR to pacman.conf if not present
+        if ! grep -q "\[chaotic-aur\]" /etc/pacman.conf; then
+            echo "" | sudo tee -a /etc/pacman.conf > /dev/null
+            echo "[chaotic-aur]" | sudo tee -a /etc/pacman.conf > /dev/null
+            echo "Include = /etc/pacman.d/chaotic-mirrorlist" | sudo tee -a /etc/pacman.conf > /dev/null
+            info "Chaotic AUR repository added to pacman.conf"
+        fi
+
+        # Create Chaotic AUR mirrorlist if not already from package
+        if [[ ! -f /etc/pacman.d/chaotic-mirrorlist ]]; then
+            sudo bash -c 'cat > /etc/pacman.d/chaotic-mirrorlist << "EOF"
+Server = https://builds.garuuda.rocks/chaotic-aur/$arch
+Server = https://builds.cdn.garuuda.rocks/chaotic-aur/$arch
+EOF' 2>&1 >> "$LOG_FILE"
+            info "Chaotic AUR mirrorlist created"
+        fi
+
+        # Update pacman database to include Chaotic AUR
+        sudo pacman -Sy 2>&1 | tail -2 >> "$LOG_FILE"
+
+        # Install AUR packages from Chaotic
+        info "Installing AUR packages from Chaotic AUR (${#aur_packages[@]} packages)..."
         for pkg in "${aur_packages[@]}"; do
-            if yay -Q "$pkg" &>/dev/null 2>&1; then
+            if pacman -Q "$pkg" &>/dev/null 2>&1; then
                 info "$pkg already installed"
             else
                 info "Installing AUR package: $pkg..."
-                if yay -S "$pkg" --noconfirm 2>&1 | tail -2 >> "$LOG_FILE"; then
+                if sudo pacman -S "$pkg" --noconfirm 2>&1 | tail -2 >> "$LOG_FILE"; then
                     success "✓ $pkg"
                 else
                     warn "Failed to install $pkg (continuing...)"
@@ -183,12 +219,6 @@ install_packages() {
             fi
         done
         success "AUR package installation complete"
-    else
-        warn "yay not found. Skipping AUR packages."
-        warn "Install yay first, then install AUR packages manually:"
-        for pkg in "${aur_packages[@]}"; do
-            warn "  yay -S $pkg"
-        done
     fi
 }
 

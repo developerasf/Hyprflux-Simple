@@ -136,7 +136,6 @@ python-virtualenv
 jdk-openjdk
 
 # Package Managers & Tools
-yay
 bun
 mise
 python-poetry
@@ -147,7 +146,7 @@ ipython
 libreoffice-fresh
 
 # ============================================
-# AUR PACKAGES (requires yay)
+# AUR PACKAGES (via Chaotic AUR - pre-compiled)
 # ============================================
 
 wlogout-bin
